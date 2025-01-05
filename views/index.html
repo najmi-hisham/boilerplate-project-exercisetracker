@@ -2,22 +2,34 @@
 <html>
   <head>
     <title>Exercise Tracker | freeCodeCamp</title>
-    <link rel="shortcut icon" href="https://cdn.freecodecamp.org/universal/favicons/favicon.ico"  type="image/x-icon" />
-    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet" type="text/css" />
+    <link
+      rel="shortcut icon"
+      href="https://cdn.freecodecamp.org/universal/favicons/favicon.ico"
+      type="image/x-icon"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto"
+      rel="stylesheet"
+      type="text/css"
+    />
     <link href="style.css" rel="stylesheet" type="text/css" />
   </head>
 
   <body>
     <div class="container">
-      <h1>Exercise tracker</h1>
+      <h1>Exercise Tracker</h1>
+
+      <!-- Create User Form -->
       <form action="/api/users" method="post">
         <h2>Create a New User</h2>
         <p><code>POST /api/users</code></p>
         <input id="uname" type="text" name="username" placeholder="username" />
         <input type="submit" value="Submit" />
       </form>
+
+      <!-- Add Exercises Form -->
       <form action="/api/users/:_id/exercises" id="exercise-form" method="post">
-        <h2>Add exercises</h2>
+        <h2>Add Exercises</h2>
         <p><code>POST /api/users/:_id/exercises</code></p>
         <input id="uid" type="text" name=":_id" placeholder=":_id" />
         <input id="desc" type="text" name="description" placeholder="description*" />
@@ -25,21 +37,86 @@
         <input id="date" type="text" name="date" placeholder="date (yyyy-mm-dd)" />
         <input type="submit" value="Submit" />
       </form>
-      <p>
-        <strong>GET user's exercise log: </strong>
-        <code>GET /api/users/:_id/logs?[from][&amp;to][&amp;limit]</code>
-      </p>
-      <p><strong>[ ]</strong> = optional</p>
-      <p><strong>from, to</strong> = dates (yyyy-mm-dd); <strong>limit</strong> = number</p>
-    </div>
-    <script>
-      const exerciseForm = document.getElementById("exercise-form");
 
+      <!-- View Logs -->
+      <form id="log-form">
+        <h2>View Exercise Logs</h2>
+        <p><code>GET /api/users/:_id/logs?[from][&to][&limit]</code></p>
+        <input id="log-uid" type="text" name="_id" placeholder=":_id" />
+        <input id="log-from" type="text" name="from" placeholder="from (yyyy-mm-dd)" />
+        <input id="log-to" type="text" name="to" placeholder="to (yyyy-mm-dd)" />
+        <input id="log-limit" type="text" name="limit" placeholder="limit (number)" />
+        <button type="button" id="view-log-btn">View Logs</button>
+      </form>
+
+      <!-- Log Results -->
+      <section id="log-results" style="display: none; margin-top: 20px;">
+        <h3>Exercise Log</h3>
+        <p id="log-output"></p>
+      </section>
+    </div>
+
+    <script>
+      // Update Action URL for Adding Exercises
+      const exerciseForm = document.getElementById("exercise-form");
       exerciseForm.addEventListener("submit", () => {
         const userId = document.getElementById("uid").value;
         exerciseForm.action = `/api/users/${userId}/exercises`;
-
         exerciseForm.submit();
+      });
+
+      // Handle Viewing Logs
+      const logForm = document.getElementById("log-form");
+      const viewLogBtn = document.getElementById("view-log-btn");
+      const logResults = document.getElementById("log-results");
+      const logOutput = document.getElementById("log-output");
+
+      viewLogBtn.addEventListener("click", async () => {
+        const userId = document.getElementById("log-uid").value;
+        const from = document.getElementById("log-from").value;
+        const to = document.getElementById("log-to").value;
+        const limit = document.getElementById("log-limit").value;
+
+        if (!userId) {
+          alert("User ID is required to view logs.");
+          return;
+        }
+
+        // Construct the URL with optional parameters
+        let url = `/api/users/${userId}/logs`;
+        const params = [];
+        if (from) params.push(`from=${from}`);
+        if (to) params.push(`to=${to}`);
+        if (limit) params.push(`limit=${limit}`);
+        if (params.length > 0) url += `?${params.join("&")}`;
+
+        // Fetch logs from the API
+        try {
+          const response = await fetch(url);
+          const data = await response.json();
+
+          if (data.error) {
+            logOutput.textContent = `Error: ${data.error}`;
+          } else {
+            logOutput.innerHTML = `
+              <strong>Username:</strong> ${data.username}<br />
+              <strong>Count:</strong> ${data.count}<br />
+              <strong>Logs:</strong><br />
+              <ul>
+                ${data.log
+                  .map(
+                    (log) =>
+                      `<li><strong>Description:</strong> ${log.description}, <strong>Duration:</strong> ${log.duration} mins, <strong>Date:</strong> ${log.date}</li>`
+                  )
+                  .join("")}
+              </ul>
+            `;
+          }
+        } catch (error) {
+          logOutput.textContent = "An error occurred while fetching logs.";
+        }
+
+        logResults.style.display = "block";
       });
     </script>
   </body>
